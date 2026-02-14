@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>❤️ Valentine's Surprise</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            color: #111;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #FFDAE9;
+            overflow: auto;
+            padding: 24px;
+        }
+
+        /* Envelope Styles */
+        #envelopeStage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+        }
+        .envelope {
+            position: relative;
+            width: 280px;
+            height: 200px;
+            background: #f5e6d3;
+            border: 1px solid #d4c4a8;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            cursor: pointer;
+            transition: transform 0.25s ease;
+        }
+
+        .envelope:hover:not(.opening) { transform: scale(1.05); }
+        .envelope-flap {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(165deg, #e8d5c4 0%, #d4c4a8 45%, #c9b89a 100%);
+            clip-path: polygon(0 0, 50% 50%, 100% 0);
+            transform-origin: top center;
+            transition: transform 0.8s cubic-bezier(0.34, 1.2, 0.64, 1);
+            z-index: 2;
+        }
+        .envelope.opening .envelope-flap { transform: rotateX(-170deg); }
+        .envelope-heart {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px; height: 50px;
+            color: #c41e3a;
+            z-index: 3;
+            transition: opacity 0.3s;
+        }
+        .hidden { opacity: 0; }
+
+        /* Modal Styles */
+        body.show-modal .container { display: flex; }
+        .container {
+            display: none;
+            flex-direction: column;
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+            z-index: 5;
+        }
+
+       .modal-view { display: none; opacity: 0; transition: opacity 0.3s; }
+        .modal-view.visible { display: block; opacity: 1; }
+
+        /* Puzzle Styles */
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            width: 100%;
+            aspect-ratio: 1;
+            margin: 20px 0;
+            background: #eee;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        .puzzle-tile {
+            background-size: 300% 300%;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .puzzle-tile.empty { background: #ddd !important; cursor: default; }
+        
+        .yes-only-btn {
+            background: #ff4d6d;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .success-gif-wrap img { width: 100%; border-radius: 8px; }
+        .confetti { position: fixed; width: 10px; height: 10px; z-index: 100; pointer-events: none; }
+        @keyframes confetti-fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+        
+        .envelope-stage-fade-out { animation: fadeOut 0.5s forwards; }
+        @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
+    </style>
+</head>
+<body>
+
+    <div id="envelopeStage">
+        <div class="envelope" id="envelope">
+            <div class="envelope-heart">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+            </div>
+            <div class="envelope-flap"></div>
+        </div>
+        <p style="margin-top: 20px; color: #c41e3a; font-weight: bold;">Click to open my envelope!</p>
+    </div>
+
+    <div class="container">
+        <div id="puzzleView" class="modal-view">
+            <h2 style="margin-bottom: 10px;">Dear My Love...</h2>
+            <p style="font-size: 0.9em;">Solve the puzzle to get surprise!</p>
+            <div class="puzzle-grid" id="puzzleGrid"></div>
+            <div id="revealArea" style="display: none;">
+                <p style="font-weight: bold; margin: 10px 0;">Will you be my Valentine?</p>
+                <button class="yes-only-btn" id="yesBtn">Yessss❤️</button>
+            </div>
+        </div>
+
+        <div id="successView" class="modal-view">
+            <h2>Yayyy! I Love You! ❤️</h2>
+            <div class="success-gif-wrap" style="margin-top: 15px;">
+                <img src="https://i.postimg.cc/T20RqHJp/IMG-1857.gif" alt="Happy Dance">
+            </div>
+            <button onclick="location.reload()" style="background:none; border:none; color:#999; text-decoration:underline; cursor:pointer; margin-top:15px;">Press here to play again my babi</button>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            image: 'https://i.postimg.cc/vTffCwYx/IMG-1845.jpg',
+            gif: 'https://i.postimg.cc/T20RqHJp/IMG-1857.gif'
+        };
+
+        const EMPTY_PIECE = 3;
+        const solution = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let currentState = [...solution];
+
+        document.getElementById('envelope').addEventListener('click', function() {
+            this.classList.add('opening');
+            this.querySelector('.envelope-heart').classList.add('hidden');
+            setTimeout(() => {
+                document.getElementById('envelopeStage').classList.add('envelope-stage-fade-out');
+                document.body.classList.add('show-modal');
+                document.getElementById('puzzleView').classList.add('visible');
+                initPuzzle();
+            }, 1200);
+        });
+
+        function initPuzzle() {
+            for (let i = 0; i < 10; i++) {
+                let emptyIdx = currentState.indexOf(EMPTY_PIECE);
+                let moves = getMoves(emptyIdx);
+                let move = moves[Math.floor(Math.random() * moves.length)];
+                [currentState[emptyIdx], currentState[move]] = [currentState[move], currentState[emptyIdx]];
+            }
+            render();
+        }
+
+        function getMoves(idx) {
+            let m = [];
+            let r = Math.floor(idx/3), c = idx%3;
+            if (r > 0) m.push(idx-3); if (r < 2) m.push(idx+3);
+            if (c > 0) m.push(idx-1); if (c < 2) m.push(idx+1);
+            return m;
+        }
+
+        function render() {
+            const grid = document.getElementById('puzzleGrid');
+            grid.innerHTML = '';
+            currentState.forEach((p, i) => {
+                let tile = document.createElement('div');
+                tile.className = 'puzzle-tile' + (p === EMPTY_PIECE ? ' empty' : '');
+                if (p !== EMPTY_PIECE) {
+                    tile.style.backgroundImage = `url('${CONFIG.image}')`;
+                    let pos = p - 1;
+                    tile.style.backgroundPosition = `${(pos%3)*50}% ${Math.floor(pos/3)*50}%`;
+                    tile.onclick = () => {
+                        let emptyIdx = currentState.indexOf(EMPTY_PIECE);
+                        if (getMoves(i).includes(emptyIdx)) {
+                            [currentState[i], currentState[emptyIdx]] = [currentState[emptyIdx], currentState[i]];
+                            render();
+                            checkWin();
+                        }
+                    };
+                }
+                grid.appendChild(tile);
+            });
+        }
+
+        function checkWin() {
+            if (currentState.every((v, i) => v === solution[i])) {
+                const emptyTile = document.querySelector('.puzzle-tile.empty');
+                if(emptyTile) {
+                    emptyTile.style.backgroundImage = `url('${CONFIG.image}')`;
+                    emptyTile.style.backgroundPosition = `100% 0%`;
+                    emptyTile.classList.remove('empty');
+                }
+                setTimeout(() => {
+                    document.getElementById('revealArea').style.display = 'block';
+                }, 500);
+            }
+        }
+
+        document.getElementById('yesBtn').addEventListener('click', () => {
+            document.getElementById('puzzleView').classList.remove('visible');
+            document.getElementById('successView').classList.add('visible');
+            startConfetti();
+        });
+
+        function startConfetti() {
+            for (let i = 0; i < 100; i++) {
+                setTimeout(() => {
+                    let c = document.createElement('div');
+                    c.className = 'confetti';
+                    c.style.left = Math.random() * 100 + 'vw';
+                    c.style.top = '-10px';
+                    c.style.background = ['#ff4d6d','#ffb3c1','#ffccd5','#c9184a'][Math.floor(Math.random()*4)];
+                    c.style.animation = `confetti-fall ${2+Math.random()*2}s linear forwards`;
+                    document.body.appendChild(c);
+                    setTimeout(() => c.remove(), 3000);
+                }, i * 20);
+            }
+        }
+    </script>
+</body>
+</html>
